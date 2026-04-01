@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-playfair: "Playfair Display", Georgia, serif;
+  --font-inter: "Inter", system-ui, sans-serif;
+  --gold: #c9a227;
+  --gold-light: #e8c84a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+html { height: 100%; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  height: 100%;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Golf background on ALL pages */
+  background-image: url('/baground.png');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-color: #071a10;
+}
+
+/* Dark overlay applied globally */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, rgba(4,18,10,0.82) 0%, rgba(5,20,12,0.76) 60%, rgba(4,18,10,0.88) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* All page content must be above the overlay */
+#__next, main, [data-nextjs-scroll-focus-boundary] { position: relative; z-index: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(201,162,39,0.4); border-radius: 2px; }
+
+/* Range slider */
+input[type="range"] { appearance: none; -webkit-appearance: none; height: 6px; border-radius: 3px; outline: none; cursor: pointer; }
+input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #dc2626; border: 2px solid #fff; box-shadow: 0 0 8px rgba(220,38,38,0.6); cursor: pointer; }
+input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #dc2626; border: 2px solid #fff; cursor: pointer; }
+
+/* ── Keyframes ── */
+@keyframes fadeIn  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.animate-fade-in  { animation: fadeIn  0.4s ease-out both; }
+.animate-slide-up { animation: slideUp 0.45s ease-out both; }
+.animate-scale-in { animation: scaleIn 0.3s ease-out both; }
+
+/* ── White-glass card (all cards) ── */
+.card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* ── Input field ── */
+.field {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 13px 20px;
+  color: #fff;
+  font-size: 14px;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.field::placeholder { color: rgba(201,162,39,0.7); }
+.field:focus { border-color: rgba(201,162,39,0.6); background: rgba(0,0,0,0.35); }
+
+/* ── Gold button ── */
+.btn-gold {
+  width: 100%; padding: 16px 24px; border: none; border-radius: 12px;
+  background: linear-gradient(135deg, #b8901f 0%, #e8c84a 50%, #b8901f 100%);
+  color: #1a0a00; font-weight: 800; font-size: 14px; letter-spacing: 0.18em;
+  text-transform: uppercase; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(201,162,39,0.4);
+  transition: opacity 0.18s, transform 0.14s;
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+.btn-gold:hover  { opacity: 0.9; }
+.btn-gold:active { transform: scale(0.97); }
+.btn-gold:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Green button ── */
+.btn-green {
+  border: none; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(135deg, #15803d, #16a34a);
+  color: #fff; font-weight: 700;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  transition: opacity 0.18s, transform 0.14s;
+}
+.btn-green:hover  { opacity: 0.9; }
+.btn-green:active { transform: scale(0.97); }
+.btn-green:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(201,162,39,0.15);
+  border-top-color: #c9a227;
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+/* ── Live dot ── */
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 6px #4ade80;
+  animation: pulse 2s ease-in-out infinite;
 }
