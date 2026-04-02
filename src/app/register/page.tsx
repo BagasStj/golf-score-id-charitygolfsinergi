@@ -163,6 +163,8 @@ export default function RegisterPage() {
           <input
             id="reg-bagtag"
             type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={bagTag}
             onChange={(e) => {
               const val = e.target.value;

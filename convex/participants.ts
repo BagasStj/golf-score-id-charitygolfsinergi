@@ -13,15 +13,24 @@ export const registerPlayer = mutation({
     bagTag: v.string(), // required, must be unique
   },
   handler: async (ctx, { tournamentId, name, phone, bagTag }) => {
-    // Validate bag tag uniqueness within tournament
-    const existingBagTag = await ctx.db
+    // Validate uniqueness within tournament
+    const participants = await ctx.db
       .query("tournament_participants")
       .withIndex("by_tournament", (q) => q.eq("tournamentId", tournamentId))
-      .filter((q) => q.eq(q.field("bagTag"), bagTag))
-      .first();
+      .collect();
 
-    if (existingBagTag) {
-      throw new Error(`Nomor bag tag "${bagTag}" sudah terdaftar. Gunakan nomor bag tag yang berbeda.`);
+    const tName = name.trim().toLowerCase();
+    const tPhone = phone.trim();
+    const tBagTag = bagTag.trim();
+
+    if (participants.some((p) => p.bagTag === tBagTag)) {
+      throw new Error(`Nomor bag tag "${tBagTag}" sudah terdaftar. Gunakan nomor bag tag yang berbeda.`);
+    }
+    if (participants.some((p) => p.name.toLowerCase() === tName)) {
+      throw new Error(`Nama "${name.trim()}" sudah terdaftar. Gunakan nama yang berbeda (atau login dengan nama tersebut).`);
+    }
+    if (participants.some((p) => p.phone === tPhone)) {
+      throw new Error(`Nomor HP "${tPhone}" sudah terdaftar. Gunakan nomor yang berbeda (atau login).`);
     }
 
     // Get the single flight for this tournament (auto-create if needed)
