@@ -51,9 +51,12 @@ export default function RegisterPage() {
       router.push(`/scoring/${tournament._id}`);
     } catch (err: unknown) {
       const rawMsg = err instanceof Error ? err.message : "Registration failed. Please try again.";
-      const cleanMsg = rawMsg.includes("[CONVEX") || rawMsg.includes("Server Error") 
-        ? "Terjadi kesalahan sistem. Silakan coba lagi nanti." 
-        : rawMsg.replace("Uncaught Error: ", "").trim();
+      let cleanMsg = "Terjadi kesalahan sistem. Silakan coba lagi nanti.";
+      if (rawMsg.includes("ConvexError:")) {
+        cleanMsg = rawMsg.split("ConvexError:")[1].split("\\n")[0].split(" at ")[0].trim();
+      } else if (!rawMsg.includes("[CONVEX") && !rawMsg.includes("Server Error")) {
+        cleanMsg = rawMsg.replace("Uncaught Error: ", "").split(" at ")[0].trim();
+      }
       setError(cleanMsg);
     } finally {
       setLoading(false);

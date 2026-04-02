@@ -16,22 +16,22 @@ type Score = { _id: Id<"scores">; holeNumber: number; strokes: number; submitted
 type HoleConfig = { holeNumber: number; par: number; index: number };
 
 const T = {
-  primary:   "rgba(255,255,255,0.95)",
+  primary: "rgba(255,255,255,0.95)",
   secondary: "rgba(255,255,255,0.70)",
-  muted:     "rgba(255,255,255,0.45)",
-  dim:       "rgba(255,255,255,0.15)",
-  gold:      "#e8c84a",
-  green:     "#4ade80",
-  red:       "#f87171",
+  muted: "rgba(255,255,255,0.45)",
+  dim: "rgba(255,255,255,0.15)",
+  gold: "#e8c84a",
+  green: "#4ade80",
+  red: "#f87171",
 };
 
 function scoreBg(strokes: number, par: number) {
   const d = strokes - par;
   if (d <= -2) return { bg: "#fbbf24", color: "#000" };
   if (d === -1) return { bg: "#22c55e", color: "#000" };
-  if (d === 0)  return { bg: "#fff",    color: "#000" };
-  if (d === 1)  return { bg: "#DE1A58", color: "#fff" };
-  return              { bg: "#CF0F0F", color: "#fff" };
+  if (d === 0) return { bg: "#fff", color: "#000" };
+  if (d === 1) return { bg: "#DE1A58", color: "#fff" };
+  return { bg: "#CF0F0F", color: "#fff" };
 }
 
 /* ── Email Modal ── */
@@ -40,15 +40,15 @@ function EmailModal({ tournamentId, playerId, holes, scores, tournament, onClose
   tournament: { name: string; courseName: string; date: string };
   onClose: () => void; onSent: () => void;
 }) {
-  const [email, setEmail]   = useState("");
+  const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
-  const [err, setErr]       = useState("");
+  const [err, setErr] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sendEmail   = useAction(api.email.sendScorecardEmail as any);
+  const sendEmail = useAction(api.email.sendScorecardEmail as any);
   const updateEmail = useMutation(api.participants.updateParticipantEmail);
   const name = typeof window !== "undefined" ? (localStorage.getItem("playerName") ?? "") : "";
-  const tot  = scores.reduce((s, sc) => s + sc.strokes, 0);
-  const par  = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
+  const tot = scores.reduce((s, sc) => s + sc.strokes, 0);
+  const par = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
 
   const handleSend = async () => {
     if (!email.includes("@")) { setErr("Enter a valid email address"); return; }
@@ -59,9 +59,12 @@ function EmailModal({ tournamentId, playerId, holes, scores, tournament, onClose
       onSent();
     } catch (e) {
       const rawMsg = e instanceof Error ? e.message : "Failed to send email";
-      const cleanMsg = rawMsg.includes("[CONVEX") || rawMsg.includes("Server Error") 
-        ? "Gagal mengirim email. Sistem sedang gangguan." 
-        : rawMsg.replace("Uncaught Error: ", "").trim();
+      let cleanMsg = "Gagal mengirim email. Sistem sedang gangguan.";
+      if (rawMsg.includes("ConvexError:")) {
+        cleanMsg = rawMsg.split("ConvexError:")[1].split("\\n")[0].split(" at ")[0].trim();
+      } else if (!rawMsg.includes("[CONVEX") && !rawMsg.includes("Server Error")) {
+        cleanMsg = rawMsg.replace("Uncaught Error: ", "").split(" at ")[0].trim();
+      }
       setErr(cleanMsg);
     }
     finally { setSending(false); }
@@ -94,11 +97,11 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
   onHoleClick: (h: number) => void; scoringFinished: boolean;
 }) {
   const [mode, setMode] = useState<"stroke" | "over">("stroke");
-  const sm            = new Map(scores.map((s) => [s.holeNumber, s]));
-  const totalPar      = holes.reduce((s, h) => s + h.par, 0);
-  const totalStrokes  = scores.reduce((s, sc) => s + sc.strokes, 0);
-  const playedPar     = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
-  const scoreToPar    = totalStrokes - playedPar;
+  const sm = new Map(scores.map((s) => [s.holeNumber, s]));
+  const totalPar = holes.reduce((s, h) => s + h.par, 0);
+  const totalStrokes = scores.reduce((s, sc) => s + sc.strokes, 0);
+  const playedPar = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
+  const scoreToPar = totalStrokes - playedPar;
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -121,8 +124,8 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
       <div className="card" style={{ padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ color: T.secondary, fontSize: 13, fontWeight: 600 }}>View mode</span>
         <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.35)", borderRadius: 10, padding: 3 }}>
-          {(["stroke","over"] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} style={{ padding: "5px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11, background: mode === m ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "transparent", color: mode === m ? "#0e0800" : T.muted, transition: "all 0.2s" }}>
+          {(["stroke", "over"] as const).map((m) => (
+            <button key={m} onClick={() => setMode(m)} style={{ padding: "5px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11, background: mode === m ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "transparent", color: mode === m ? "#0e0800" : T.muted, transition: "all 0.2s" }}>
               {m === "stroke" ? "Stroke" : "Over"}
             </button>
           ))}
@@ -132,7 +135,7 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
       {/* Legend */}
       <div className="card" style={{ padding: "8px 14px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px 16px" }}>
-          {[["#fbbf24","Eagle"],["#22c55e","Birdie"],["#fff","Par"],["#DE1A58","Bogey"],["#CF0F0F","Double+"]].map(([c,l]) => (
+          {[["#fbbf24", "Eagle"], ["#22c55e", "Birdie"], ["#fff", "Par"], ["#DE1A58", "Bogey"], ["#CF0F0F", "Double+"]].map(([c, l]) => (
             <div key={l} style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <div style={{ width: 11, height: 11, borderRadius: "50%", background: c, border: c === "#fff" ? "1px solid rgba(0,0,0,0.15)" : "none" }} />
               <span style={{ color: T.secondary, fontSize: 10, fontWeight: 600 }}>{l}</span>
@@ -143,7 +146,7 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
 
       {/* Grid table */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <div 
+        <div
           ref={scrollRef}
           onScroll={handleScroll}
           style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}
@@ -172,9 +175,9 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
               <tr>
                 <td style={{ padding: "10px 12px", color: T.secondary, fontWeight: 700, fontSize: 11, borderRight: "1px solid rgba(255,255,255,0.08)", whiteSpace: "nowrap" }}>Score</td>
                 {holes.map((h) => {
-                  const sc    = sm.get(h.holeNumber);
+                  const sc = sm.get(h.holeNumber);
                   const style = sc ? scoreBg(sc.strokes, h.par) : null;
-                  const val   = sc ? (mode === "over"
+                  const val = sc ? (mode === "over"
                     ? (sc.strokes - h.par === 0 ? "0" : sc.strokes - h.par > 0 ? `+${sc.strokes - h.par}` : `${sc.strokes - h.par}`)
                     : String(sc.strokes)) : null;
                   return (
@@ -184,8 +187,8 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
                       {sc && style
                         ? <div style={{ width: 26, height: 26, borderRadius: "50%", background: style.bg, color: style.color, fontWeight: 700, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>{val}</div>
                         : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
-                            <Icon icon="ph:minus" style={{ color: T.muted, fontSize: 12 }} />
-                          </div>
+                          <Icon icon="ph:minus" style={{ color: T.muted, fontSize: 12 }} />
+                        </div>
                       }
                     </td>
                   );
@@ -213,28 +216,28 @@ export default function ScoringPage() {
   const router = useRouter();
   const tournamentId = params.tournamentId as string;
 
-  const [tab,        setTab]        = useState<"scorecard"|"leaderboard">("scorecard");
-  const [playerId,   setPlayerId]   = useState<string|null>(null);
+  const [tab, setTab] = useState<"scorecard" | "leaderboard">("scorecard");
+  const [playerId, setPlayerId] = useState<string | null>(null);
   const [emailModal, setEmailModal] = useState(false);
-  const [emailSent,  setEmailSent]  = useState(false);
-  const [finishOk,   setFinishOk]   = useState(false);
-  const [finished,   setFinished]   = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [finishOk, setFinishOk] = useState(false);
+  const [finished, setFinished] = useState(false);
 
   useEffect(() => {
-    const id  = localStorage.getItem("playerId");
+    const id = localStorage.getItem("playerId");
     const tid = localStorage.getItem("tournamentId");
     if (!id || tid !== tournamentId) { router.replace("/register"); return; }
     setPlayerId(id);
   }, [tournamentId, router]);
 
-  const tournament  = useQuery(api.tournaments.getTournamentById, { tournamentId: tournamentId as Id<"tournaments"> });
+  const tournament = useQuery(api.tournaments.getTournamentById, { tournamentId: tournamentId as Id<"tournaments"> });
   const participant = useQuery(api.participants.getParticipantById,
     playerId ? { participantId: playerId as Id<"tournament_participants"> } : "skip"
   ) as Participant | null | undefined;
   const playerScores = useQuery(api.scores.getPlayerScores,
     playerId ? { tournamentId: tournamentId as Id<"tournaments">, playerId: playerId as Id<"tournament_participants"> } : "skip"
   );
-  const leaderboard   = useQuery(api.scores.getTournamentLeaderboard, { tournamentId: tournamentId as Id<"tournaments"> });
+  const leaderboard = useQuery(api.scores.getTournamentLeaderboard, { tournamentId: tournamentId as Id<"tournaments"> });
   const finishScoring = useMutation(api.flights.finishScoring);
 
   const holes: HoleConfig[] = useMemo(() => {
@@ -246,13 +249,13 @@ export default function ScoringPage() {
   }, [tournament?.holesConfig]);
 
   const scores: Score[] = useMemo(() => (playerScores ?? []) as Score[], [playerScores]);
-  const holesPlayed  = scores.length;
-  const totalHoles   = holes.length;
-  const allDone      = totalHoles > 0 && holesPlayed === totalHoles;
-  const progress     = totalHoles > 0 ? (holesPlayed / totalHoles) * 100 : 0;
+  const holesPlayed = scores.length;
+  const totalHoles = holes.length;
+  const allDone = totalHoles > 0 && holesPlayed === totalHoles;
+  const progress = totalHoles > 0 ? (holesPlayed / totalHoles) * 100 : 0;
   const totalStrokes = scores.reduce((s, sc) => s + sc.strokes, 0);
-  const playedPar    = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
-  const scoreToPar   = totalStrokes - playedPar;
+  const playedPar = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
+  const scoreToPar = totalStrokes - playedPar;
 
   useEffect(() => {
     if (!participant) return;
@@ -270,9 +273,9 @@ export default function ScoringPage() {
   const handleHoleClick = (h: number) => router.push(`/scoring/${tournamentId}/score/${h}`);
 
   const handleInputNext = () => {
-    const done   = new Set(scores.map((s) => s.holeNumber));
+    const done = new Set(scores.map((s) => s.holeNumber));
     const sorted = [...holes].sort((a, b) => a.holeNumber - b.holeNumber);
-    const next   = sorted.find((h) => !done.has(h.holeNumber)) ?? sorted[0];
+    const next = sorted.find((h) => !done.has(h.holeNumber)) ?? sorted[0];
     if (next) router.push(`/scoring/${tournamentId}/score/${next.holeNumber}`);
   };
 
@@ -289,7 +292,7 @@ export default function ScoringPage() {
       <div className="header-surface" style={{ position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "10px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <button onClick={() => router.push("/register")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(0,0,0,0.10)", border: "1px solid rgba(0,0,0,0.14)", color: T.secondary, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => router.push("/login")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(0,0,0,0.10)", border: "1px solid rgba(0,0,0,0.14)", color: T.secondary, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
               <Icon icon="ph:sign-out-bold" style={{ fontSize: 14 }} /> Exit
             </button>
             <div style={{ textAlign: "center" }}>
@@ -316,7 +319,7 @@ export default function ScoringPage() {
 
           {/* Tabs */}
           <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.12)", borderRadius: 12, padding: 4, border: "1px solid rgba(0,0,0,0.08)" }}>
-            {(["scorecard","leaderboard"] as const).map((t) => (
+            {(["scorecard", "leaderboard"] as const).map((t) => (
               <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, transition: "all 0.2s", background: tab === t ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "transparent", color: tab === t ? "#0e0800" : "rgba(255,255,255,0.6)" }}>
                 {t === "scorecard" ? "Scorecard" : "Leaderboard"}
               </button>
@@ -371,14 +374,14 @@ export default function ScoringPage() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: "rgba(0,0,0,0.3)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                    {["#","Player","Over","Str","Holes"].map((h, i) => (
+                    {["#", "Player", "Over", "Str", "Holes"].map((h, i) => (
                       <th key={h} style={{ padding: "8px 12px", textAlign: i < 2 ? "left" : "center", color: T.secondary, fontWeight: 700, fontSize: 11 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {(leaderboard ?? []).map((p, i) => {
-                    const sp   = p.scoreToPar;
+                    const sp = p.scoreToPar;
                     const isMe = p._id === playerId;
                     return (
                       <tr key={p._id} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", background: isMe ? "rgba(201,162,39,0.09)" : undefined }}>

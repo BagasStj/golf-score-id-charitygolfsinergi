@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 function generateToken(): string {
@@ -24,13 +24,13 @@ export const registerPlayer = mutation({
     const tBagTag = bagTag.trim();
 
     if (participants.some((p) => p.bagTag === tBagTag)) {
-      throw new Error(`Nomor bag tag "${tBagTag}" sudah terdaftar. Gunakan nomor bag tag yang berbeda.`);
+      throw new ConvexError(`Nomor bag tag "${tBagTag}" sudah terdaftar. Gunakan nomor bag tag yang berbeda.`);
     }
     if (participants.some((p) => p.name.toLowerCase() === tName)) {
-      throw new Error(`Nama "${name.trim()}" sudah terdaftar. Gunakan nama yang berbeda (atau login dengan nama tersebut).`);
+      throw new ConvexError(`Nama "${name.trim()}" sudah terdaftar. Gunakan nama yang berbeda (atau login dengan nama tersebut).`);
     }
     if (participants.some((p) => p.phone === tPhone)) {
-      throw new Error(`Nomor HP "${tPhone}" sudah terdaftar. Gunakan nomor yang berbeda (atau login).`);
+      throw new ConvexError(`Nomor HP "${tPhone}" sudah terdaftar. Gunakan nomor yang berbeda (atau login).`);
     }
 
     // Get the single flight for this tournament (auto-create if needed)
@@ -78,16 +78,20 @@ export const loginPlayer = mutation({
     phone: v.string(),
   },
   handler: async (ctx, { tournamentId, name, phone }) => {
-    let query = ctx.db
+    const participants = await ctx.db
       .query("tournament_participants")
       .withIndex("by_tournament", (q) => q.eq("tournamentId", tournamentId))
-      .filter((q) => q.eq(q.field("name"), name.trim()))
-      .filter((q) => q.eq(q.field("phone"), phone.trim()));
+      .collect();
 
-    const participant = await query.first();
+    const tName = name.trim().toLowerCase();
+    const tPhone = phone.trim();
+
+    const participant = participants.find(
+      (p) => p.name.toLowerCase() === tName && p.phone === tPhone
+    );
 
     if (!participant) {
-      throw new Error("Pemain tidak ditemukan. Pastikan nama sesuai dengan yang didaftarkan.");
+      throw new ConvexError("Pemain tidak ditemukan atau nomor handphone salah.");
     }
 
     return { participantId: participant._id, token: participant.token };
