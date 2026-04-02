@@ -7,10 +7,10 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 
 const T = {
-  primary:   "rgba(255,255,255,0.96)",
-  secondary: "rgba(255,255,255,0.75)",
-  muted:     "rgba(255,255,255,0.55)",
-  gold:      "#c9a227",
+  primary:   "rgba(255,255,255,0.95)",
+  secondary: "rgba(255,255,255,0.70)",
+  muted:     "rgba(255,255,255,0.45)",
+  gold:      "#e8c84a",
   green:     "#4ade80",
   red:       "#f87171",
 };
@@ -92,7 +92,7 @@ export default function LeaderboardPage() {
                   </div>
                   <p style={{ color: "#fff", fontWeight: 700, fontSize: 11, lineHeight: 1.3, marginBottom: 6, wordBreak: "break-word" }}>{p.name}</p>
                   <p style={{ fontWeight: 900, fontSize: rank === 1 ? 22 : 18, color: sp < 0 ? T.green : sp > 0 ? T.red : T.secondary }}>
-                    {sp === 0 ? "E" : sp > 0 ? `+${sp}` : sp}
+                    {sp === 0 ? "0" : sp > 0 ? `+${sp}` : sp}
                   </p>
                   <p style={{ color: T.secondary, fontSize: 10, marginTop: 2 }}>{p.totalStrokes} str</p>
                 </div>
@@ -136,7 +136,7 @@ export default function LeaderboardPage() {
                     </div>
                     {/* Over/Under */}
                     <div style={{ textAlign: "center", fontWeight: 900, fontSize: 17, color: sp < 0 ? T.green : sp > 0 ? T.red : T.secondary }}>
-                      {p.holesPlayed === 0 ? "—" : sp === 0 ? "E" : sp > 0 ? `+${sp}` : sp}
+                      {p.holesPlayed === 0 ? "—" : sp === 0 ? "0" : sp > 0 ? `+${sp}` : sp}
                     </div>
                     {/* Strokes */}
                     <div style={{ textAlign: "center", color: T.secondary, fontWeight: 600, fontSize: 13 }}>

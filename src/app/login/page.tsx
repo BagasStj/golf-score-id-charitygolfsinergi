@@ -6,51 +6,45 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 
-
-export default function RegisterPage() {
+export default function LoginPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [bagTag, setBagTag] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const activeTournament = useQuery(api.tournaments.getActiveTournament);
-  const registerPlayer = useMutation(api.participants.registerPlayer);
-  const seedTournament = useMutation(api.tournaments.seedTournament);
+  const loginPlayer = useMutation(api.participants.loginPlayer);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setError("Full name is required"); return; }
     if (!phone.trim()) { setError("Phone number is required"); return; }
-    if (!bagTag.trim()) { setError("Bag tag number is required"); return; }
 
     setLoading(true);
     setError("");
     try {
-      let tournament = activeTournament;
+      const tournament = activeTournament;
       if (!tournament) {
-        await seedTournament();
-        setError("Setting up tournament, please try again in a moment.");
+        setError("No active tournament found.");
         setLoading(false);
         return;
       }
 
-      const result = await registerPlayer({
+      const result = await loginPlayer({
         tournamentId: tournament._id as Id<"tournaments">,
         name: name.trim(),
         phone: phone.trim(),
-        bagTag: bagTag.trim(),
       });
 
-      localStorage.setItem("playerToken", result.token);
+      localStorage.setItem("playerToken", result.token ?? "");
       localStorage.setItem("playerId", result.participantId);
       localStorage.setItem("tournamentId", tournament._id);
       localStorage.setItem("playerName", name.trim());
 
       router.push(`/scoring/${tournament._id}`);
     } catch (err: unknown) {
-      const rawMsg = err instanceof Error ? err.message : "Registration failed. Please try again.";
+      const rawMsg = err instanceof Error ? err.message : "Login failed. Please try again.";
       const cleanMsg = rawMsg.includes("[CONVEX") || rawMsg.includes("Server Error") 
         ? "Terjadi kesalahan sistem. Silakan coba lagi nanti." 
         : rawMsg.replace("Uncaught Error: ", "").trim();
@@ -107,7 +101,7 @@ export default function RegisterPage() {
         </p>
       </div>
 
-      {/* ── Registration Card ── */}
+      {/* ── Login Card ── */}
       <div
         className="card animate-slide-up"
         style={{
@@ -137,13 +131,13 @@ export default function RegisterPage() {
           textTransform: "uppercase",
           marginBottom: 22,
         }}>
-          Player Registration
+          Player Login
         </h2>
 
         {/* Form fields */}
         <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <input
-            id="reg-name"
+            id="login-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -152,30 +146,12 @@ export default function RegisterPage() {
             className="field"
           />
           <input
-            id="reg-phone"
+            id="login-phone"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Phone number"
             autoComplete="tel"
-            className="field"
-          />
-          <input
-            id="reg-bagtag"
-            type="text"
-            value={bagTag}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (!val) { setBagTag(""); return; }
-              // Extract only numbers from the input
-              const nums = val.replace(/\D/g, "");
-              if (nums) {
-                setBagTag(`BT-${nums}`);
-              } else {
-                setBagTag("");
-              }
-            }}
-            placeholder="Bag tag (e.g., BT-3213)"
             className="field"
           />
 
@@ -196,10 +172,10 @@ export default function RegisterPage() {
         </form>
       </div>
 
-      {/* ── Register Button ── */}
+      {/* ── Login Button ── */}
       <div className="animate-fade-in" style={{ width: "100%", maxWidth: 380, marginTop: 20 }}>
         <button
-          id="btn-register"
+          id="btn-login"
           onClick={handleSubmit}
           disabled={loading}
           className="btn-gold"
@@ -207,19 +183,19 @@ export default function RegisterPage() {
           {loading
             ? <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
               <span style={{ width: 16, height: 16, border: "2px solid rgba(0,0,0,0.2)", borderTopColor: "#000", borderRadius: "50%", display: "inline-block", animation: "spin 0.8s linear infinite" }} />
-              Registering...
+              Logging in...
             </span>
-            : "Register"
+            : "Login"
           }
         </button>
 
         <p style={{ textAlign: "center", marginTop: 16, color: "rgba(255,255,255,0.35)", fontSize: 12 }}>
-          Already registered?{" "}
+          Not registered yet?{" "}
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/register")}
             style={{ color: "#c9a227", fontWeight: 700, background: "none", border: "none", cursor: "pointer", fontSize: 12 }}
           >
-            Log in here
+            Go to Registration
           </button>
         </p>
       </div>
@@ -233,4 +209,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

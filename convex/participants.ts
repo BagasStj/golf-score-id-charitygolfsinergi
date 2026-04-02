@@ -9,7 +9,7 @@ export const registerPlayer = mutation({
   args: {
     tournamentId: v.id("tournaments"),
     name: v.string(),
-    phone: v.optional(v.string()),
+    phone: v.string(),
     bagTag: v.string(), // required, must be unique
   },
   handler: async (ctx, { tournamentId, name, phone, bagTag }) => {
@@ -50,7 +50,7 @@ export const registerPlayer = mutation({
       tournamentId,
       flightId,
       name: name.trim(),
-      phone: phone?.trim() || undefined,
+      phone: phone.trim(),
       bagTag: bagTag.trim(),
       startHole: 1,
       approvedHoles: [],
@@ -59,6 +59,29 @@ export const registerPlayer = mutation({
     });
 
     return { participantId, token };
+  },
+});
+
+export const loginPlayer = mutation({
+  args: {
+    tournamentId: v.id("tournaments"),
+    name: v.string(),
+    phone: v.string(),
+  },
+  handler: async (ctx, { tournamentId, name, phone }) => {
+    let query = ctx.db
+      .query("tournament_participants")
+      .withIndex("by_tournament", (q) => q.eq("tournamentId", tournamentId))
+      .filter((q) => q.eq(q.field("name"), name.trim()))
+      .filter((q) => q.eq(q.field("phone"), phone.trim()));
+
+    const participant = await query.first();
+
+    if (!participant) {
+      throw new Error("Pemain tidak ditemukan. Pastikan nama sesuai dengan yang didaftarkan.");
+    }
+
+    return { participantId: participant._id, token: participant.token };
   },
 });
 

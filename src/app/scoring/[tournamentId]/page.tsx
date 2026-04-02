@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { Icon } from "@iconify/react";
@@ -16,11 +16,11 @@ type Score = { _id: Id<"scores">; holeNumber: number; strokes: number; submitted
 type HoleConfig = { holeNumber: number; par: number; index: number };
 
 const T = {
-  primary:   "rgba(255,255,255,0.96)",
-  secondary: "rgba(255,255,255,0.75)",
-  muted:     "rgba(255,255,255,0.55)",
-  dim:       "rgba(255,255,255,0.38)",
-  gold:      "#c9a227",
+  primary:   "rgba(255,255,255,0.95)",
+  secondary: "rgba(255,255,255,0.70)",
+  muted:     "rgba(255,255,255,0.45)",
+  dim:       "rgba(255,255,255,0.15)",
+  gold:      "#e8c84a",
   green:     "#4ade80",
   red:       "#f87171",
 };
@@ -44,7 +44,7 @@ function EmailModal({ tournamentId, playerId, holes, scores, tournament, onClose
   const [sending, setSending] = useState(false);
   const [err, setErr]       = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sendEmail   = useMutation(api.email.sendScorecardEmail as any);
+  const sendEmail   = useAction(api.email.sendScorecardEmail as any);
   const updateEmail = useMutation(api.participants.updateParticipantEmail);
   const name = typeof window !== "undefined" ? (localStorage.getItem("playerName") ?? "") : "";
   const tot  = scores.reduce((s, sc) => s + sc.strokes, 0);
@@ -57,7 +57,13 @@ function EmailModal({ tournamentId, playerId, holes, scores, tournament, onClose
       await updateEmail({ participantId: playerId as Id<"tournament_participants">, email });
       await sendEmail({ recipientEmail: email, recipientName: name, tournamentName: tournament.name, courseName: tournament.courseName, tournamentDate: tournament.date, flightName: "Flight", scores: scores.map((s) => ({ holeNumber: s.holeNumber, par: holes.find((h) => h.holeNumber === s.holeNumber)?.par ?? 4, strokes: s.strokes })), totalStrokes: tot, totalPar: par });
       onSent();
-    } catch (e) { setErr(e instanceof Error ? e.message : "Failed to send email"); }
+    } catch (e) {
+      const rawMsg = e instanceof Error ? e.message : "Failed to send email";
+      const cleanMsg = rawMsg.includes("[CONVEX") || rawMsg.includes("Server Error") 
+        ? "Gagal mengirim email. Sistem sedang gangguan." 
+        : rawMsg.replace("Uncaught Error: ", "").trim();
+      setErr(cleanMsg);
+    }
     finally { setSending(false); }
   };
 
@@ -94,6 +100,20 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
   const playedPar     = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
   const scoreToPar    = totalStrokes - playedPar;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scrollRef.current) {
+      const saved = sessionStorage.getItem("scorecardScroll");
+      if (saved) scrollRef.current.scrollLeft = parseInt(saved, 10);
+    }
+  }, []);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      sessionStorage.setItem("scorecardScroll", scrollRef.current.scrollLeft.toString());
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
@@ -102,8 +122,8 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
         <span style={{ color: T.secondary, fontSize: 13, fontWeight: 600 }}>View mode</span>
         <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.35)", borderRadius: 10, padding: 3 }}>
           {(["stroke","over"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)} style={{ padding: "5px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11, backgroundImage: mode === m ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "none", background: mode === m ? undefined : "transparent", color: mode === m ? "#0e0800" : T.muted, transition: "all 0.2s" }}>
-              {m === "stroke" ? "Stroke" : "+/-"}
+          <button key={m} onClick={() => setMode(m)} style={{ padding: "5px 14px", borderRadius: 8, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 11, background: mode === m ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "transparent", color: mode === m ? "#0e0800" : T.muted, transition: "all 0.2s" }}>
+              {m === "stroke" ? "Stroke" : "Over"}
             </button>
           ))}
         </div>
@@ -123,7 +143,11 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
 
       {/* Grid table */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div 
+          ref={scrollRef}
+          onScroll={handleScroll}
+          style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}
+        >
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
             <thead>
               <tr style={{ background: "rgba(0,0,0,0.4)", borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
@@ -151,7 +175,7 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
                   const sc    = sm.get(h.holeNumber);
                   const style = sc ? scoreBg(sc.strokes, h.par) : null;
                   const val   = sc ? (mode === "over"
-                    ? (sc.strokes - h.par === 0 ? "E" : sc.strokes - h.par > 0 ? `+${sc.strokes - h.par}` : `${sc.strokes - h.par}`)
+                    ? (sc.strokes - h.par === 0 ? "0" : sc.strokes - h.par > 0 ? `+${sc.strokes - h.par}` : `${sc.strokes - h.par}`)
                     : String(sc.strokes)) : null;
                   return (
                     <td key={h.holeNumber} style={{ textAlign: "center", padding: "8px 3px", cursor: scoringFinished ? "default" : "pointer" }}
@@ -170,7 +194,7 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
                   <div style={{ color: T.primary, fontWeight: 800, fontSize: 15 }}>{totalStrokes || "—"}</div>
                   {totalStrokes > 0 && (
                     <div style={{ fontSize: 10, fontWeight: 700, color: scoreToPar < 0 ? T.green : scoreToPar > 0 ? T.red : T.muted }}>
-                      {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar === 0 ? "E" : scoreToPar}
+                      {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar === 0 ? "0" : scoreToPar}
                     </div>
                   )}
                 </td>
@@ -265,12 +289,12 @@ export default function ScoringPage() {
       <div className="header-surface" style={{ position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "10px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <button onClick={() => router.push("/register")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", color: T.secondary, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={() => router.push("/register")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, background: "rgba(0,0,0,0.10)", border: "1px solid rgba(0,0,0,0.14)", color: T.secondary, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
               <Icon icon="ph:sign-out-bold" style={{ fontSize: 14 }} /> Exit
             </button>
             <div style={{ textAlign: "center" }}>
               <p style={{ color: T.gold, fontWeight: 700, fontSize: 13, letterSpacing: "0.04em" }}>{tournament.name}</p>
-              <p style={{ color: T.muted, fontSize: 10, marginTop: 1 }}>{tournament.courseName}</p>
+              <p style={{ color: T.secondary, fontSize: 10, marginTop: 1 }}>{tournament.courseName}</p>
             </div>
             <Image src="/logo.png" alt="Logo" width={28} height={28} style={{ objectFit: "contain" }} />
           </div>
@@ -284,16 +308,16 @@ export default function ScoringPage() {
               <span style={{ fontSize: 10, color: T.secondary }}>{holesPlayed}/{totalHoles} holes</span>
               {totalStrokes > 0 && (
                 <span style={{ fontSize: 10, fontWeight: 700, color: scoreToPar < 0 ? T.green : scoreToPar > 0 ? T.red : T.secondary }}>
-                  {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar === 0 ? "E (Par)" : scoreToPar}
+                  {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar === 0 ? "0" : scoreToPar}
                 </span>
               )}
             </div>
           </div>
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.35)", borderRadius: 12, padding: 4, border: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ display: "flex", gap: 4, background: "rgba(0,0,0,0.12)", borderRadius: 12, padding: 4, border: "1px solid rgba(0,0,0,0.08)" }}>
             {(["scorecard","leaderboard"] as const).map((t) => (
-              <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, transition: "all 0.2s", backgroundImage: tab === t ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "none", background: tab === t ? undefined : "transparent", color: tab === t ? "#0e0800" : T.muted }}>
+              <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: "8px 0", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12, transition: "all 0.2s", background: tab === t ? "linear-gradient(135deg,#c9a227,#e8c84a)" : "transparent", color: tab === t ? "#0e0800" : "rgba(255,255,255,0.6)" }}>
                 {t === "scorecard" ? "Scorecard" : "Leaderboard"}
               </button>
             ))}
@@ -368,7 +392,7 @@ export default function ScoringPage() {
                           {p.bagTag && <div style={{ color: T.muted, fontSize: 10, marginTop: 2 }}>Bag: {p.bagTag}</div>}
                         </td>
                         <td style={{ textAlign: "center", padding: "12px 10px", fontWeight: 800, fontSize: 16, color: sp < 0 ? T.green : sp > 0 ? T.red : T.secondary }}>
-                          {p.holesPlayed === 0 ? "—" : sp === 0 ? "E" : sp > 0 ? `+${sp}` : sp}
+                          {p.holesPlayed === 0 ? "—" : sp === 0 ? "0" : sp > 0 ? `+${sp}` : sp}
                         </td>
                         <td style={{ textAlign: "center", padding: "12px 10px", color: p.holesPlayed === 0 ? T.muted : T.secondary, fontWeight: 600 }}>
                           {p.holesPlayed === 0 ? "—" : p.totalStrokes}
@@ -395,11 +419,13 @@ export default function ScoringPage() {
       {/* Finish success */}
       {finishOk && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.78)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
-          <div className="card animate-scale-in" style={{ maxWidth: 320, width: "100%", padding: 32, textAlign: "center" }}>
-            <Icon icon="ph:check-circle-bold" style={{ fontSize: 60, color: T.green, marginBottom: 16 }} />
+          <div className="card animate-scale-in" style={{ maxWidth: 320, width: "100%", padding: "36px 28px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+              <Icon icon="ph:check-circle-bold" style={{ fontSize: 60, color: T.green }} />
+            </div>
             <h3 style={{ color: T.primary, fontWeight: 700, fontSize: 21, marginBottom: 8 }}>Round Complete!</h3>
-            <p style={{ color: T.secondary, fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>Your scorecard has been saved successfully.</p>
-            <button onClick={() => setFinishOk(false)} className="btn-green" style={{ width: "100%", padding: "13px 0", fontSize: 14 }}>View Scorecard</button>
+            <p style={{ color: T.secondary, fontSize: 13, marginBottom: 28, lineHeight: 1.6 }}>Your scorecard has been saved successfully.</p>
+            <button onClick={() => setFinishOk(false)} className="btn-green" style={{ width: "100%", padding: "13px 0", borderRadius: 12, fontWeight: 700, fontSize: 14 }}>View Scorecard</button>
           </div>
         </div>
       )}

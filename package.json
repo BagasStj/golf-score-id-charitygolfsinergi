@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "convex": "npx convex dev --url https://beaming-hornet-384.convex.cloud --admin-key \"dev:beaming-hornet-384|eyJ2MiI6IjY2MmM0ZWE0ZTRmMTQ2YzU5MzExZTVjNTg3MzY4ODg2In0=\""
   },
   "dependencies": {
     "@iconify/react": "^6.0.2",

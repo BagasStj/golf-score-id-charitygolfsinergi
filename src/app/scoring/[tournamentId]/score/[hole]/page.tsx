@@ -11,10 +11,10 @@ type HoleConfig = { holeNumber: number; par: number; index: number };
 type Score = { _id: Id<"scores">; holeNumber: number; strokes: number; submittedAt?: number };
 
 const T = {
-  primary:   "rgba(255,255,255,0.96)",
-  secondary: "rgba(255,255,255,0.75)",
-  muted:     "rgba(255,255,255,0.55)",
-  gold:      "#c9a227",
+  primary:   "rgba(255,255,255,0.95)",
+  secondary: "rgba(255,255,255,0.70)",
+  muted:     "rgba(255,255,255,0.45)",
+  gold:      "#e8c84a",
   green:     "#4ade80",
   red:       "#f87171",
 };
@@ -165,7 +165,7 @@ export default function ScoringHolePage() {
               <div style={{ textAlign: "right" }}>
                 <p style={{ fontSize: 9, color: T.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>Total</p>
                 <p style={{ fontSize: 15, fontWeight: 800, lineHeight: 1, color: runningToPar < 0 ? T.green : runningToPar > 0 ? T.red : T.secondary }}>
-                  {runningToPar > 0 ? `+${runningToPar}` : runningToPar === 0 ? "E" : runningToPar}
+                  {runningToPar > 0 ? `+${runningToPar}` : runningToPar === 0 ? "0" : runningToPar}
                 </p>
               </div>
               <Image src="/logo.png" alt="Logo" width={26} height={26} style={{ objectFit: "contain", opacity: 0.85 }} />
@@ -254,8 +254,7 @@ export default function ScoringHolePage() {
           <button onClick={handleSubmit} disabled={saving || strokes <= 0} style={{
             width: "100%", padding: "15px 0", borderRadius: 12, border: "none",
             cursor: saving ? "not-allowed" : "pointer",
-            backgroundImage: saving || strokes <= 0 ? "none" : isEdit ? "linear-gradient(135deg,#1d4ed8,#2563eb)" : "linear-gradient(135deg,#c9a227,#e8c84a)",
-            background: saving || strokes <= 0 ? "rgba(255,255,255,0.06)" : undefined,
+            background: saving || strokes <= 0 ? "rgba(255,255,255,0.06)" : isEdit ? "linear-gradient(135deg,#1d4ed8,#2563eb)" : "linear-gradient(135deg,#c9a227,#e8c84a)",
             color: saving || strokes <= 0 ? T.muted : isEdit ? "#fff" : "#0e0800",
             fontWeight: 900, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
             boxShadow: saving || strokes <= 0 ? "none" : isEdit ? "0 4px 18px rgba(37,99,235,0.45)" : "0 4px 22px rgba(201,162,39,0.45)",
