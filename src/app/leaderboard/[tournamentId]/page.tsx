@@ -31,7 +31,9 @@ export default function LeaderboardPage() {
   const tournament = useQuery(api.tournaments.getTournamentById, { tournamentId: tournamentId as Id<"tournaments"> });
   const leaderboard = useQuery(api.scores.getTournamentLeaderboard, { tournamentId: tournamentId as Id<"tournaments"> });
 
-  const entries = (leaderboard ?? []) as Entry[];
+  const entries = ((leaderboard ?? []) as Entry[]).filter(
+    (entry) => !entry.name.toLowerCase().includes("test")
+  );
   const totalHoles = tournament?.holesConfig ? (() => {
     const seen = new Set<number>();
     return (tournament.holesConfig as { holeNumber: number }[]).filter((h) => { if (seen.has(h.holeNumber)) return false; seen.add(h.holeNumber); return true; }).length;

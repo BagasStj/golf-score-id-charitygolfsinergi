@@ -103,20 +103,6 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
   const playedPar = scores.reduce((s, sc) => { const h = holes.find((h) => h.holeNumber === sc.holeNumber); return s + (h?.par ?? 0); }, 0);
   const scoreToPar = totalStrokes - playedPar;
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (scrollRef.current) {
-      const saved = sessionStorage.getItem("scorecardScroll");
-      if (saved) scrollRef.current.scrollLeft = parseInt(saved, 10);
-    }
-  }, []);
-
-  const handleScroll = () => {
-    if (scrollRef.current) {
-      sessionStorage.setItem("scorecardScroll", scrollRef.current.scrollLeft.toString());
-    }
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
@@ -144,67 +130,120 @@ function Scorecard({ holes, scores, onHoleClick, scoringFinished }: {
         </div>
       </div>
 
-      {/* Grid table */}
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-            <thead>
-              <tr style={{ background: "rgba(0,0,0,0.4)", borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
-                <td style={{ padding: "7px 12px", color: T.secondary, fontWeight: 700, fontSize: 10, whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.08)" }}>Hole</td>
-                {holes.map((h) => (
-                  <td key={h.holeNumber}
-                    style={{ textAlign: "center", padding: "7px 4px", fontWeight: 700, color: T.primary, minWidth: 32, cursor: scoringFinished ? "default" : "pointer" }}
+      {/* ── Front Nine (Holes 1–9) ── */}
+      <ScorecardHalf
+        label="Front Nine — Hole 1 – 9"
+        holes={holes.filter((h) => h.holeNumber <= 9)}
+        sm={sm}
+        mode={mode}
+        scoringFinished={scoringFinished}
+        onHoleClick={onHoleClick}
+      />
+
+      {/* ── Back Nine (Holes 10–18) ── */}
+      <ScorecardHalf
+        label="Back Nine — Hole 10 – 18"
+        holes={holes.filter((h) => h.holeNumber >= 10)}
+        sm={sm}
+        mode={mode}
+        scoringFinished={scoringFinished}
+        onHoleClick={onHoleClick}
+      />
+
+    </div>
+  );
+}
+
+/* ── Scorecard Half (9 holes) ── */
+function ScorecardHalf({ label, holes, sm, mode, scoringFinished, onHoleClick }: {
+  label: string;
+  holes: HoleConfig[];
+  sm: Map<number, Score>;
+  mode: "stroke" | "over";
+  scoringFinished: boolean;
+  onHoleClick: (h: number) => void;
+}) {
+  const halfPar = holes.reduce((s, h) => s + h.par, 0);
+  const halfStrokes = holes.reduce((s, h) => { const sc = sm.get(h.holeNumber); return s + (sc?.strokes ?? 0); }, 0);
+  const halfPlayedPar = holes.reduce((s, h) => { const sc = sm.get(h.holeNumber); return s + (sc ? h.par : 0); }, 0);
+  const halfOver = halfStrokes - halfPlayedPar;
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      {/* Section header */}
+      <div style={{ padding: "9px 14px", background: "rgba(0,0,0,0.45)", borderBottom: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ color: T.gold, fontWeight: 700, fontSize: 12, letterSpacing: "0.06em" }}>{label}</span>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ color: T.muted, fontSize: 11 }}>Par <strong style={{ color: T.secondary }}>{halfPar}</strong></span>
+          {halfStrokes > 0 && (
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              color: halfOver < 0 ? T.green : halfOver > 0 ? T.red : T.secondary
+            }}>
+              {halfOver > 0 ? `+${halfOver}` : halfOver === 0 ? "E" : halfOver}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div ref={scrollRef} style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: "rgba(0,0,0,0.3)", borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
+              <td style={{ padding: "8px 12px", color: T.secondary, fontWeight: 700, fontSize: 11, whiteSpace: "nowrap", borderRight: "1px solid rgba(255,255,255,0.08)" }}>Hole</td>
+              {holes.map((h) => (
+                <td key={h.holeNumber}
+                  style={{ textAlign: "center", padding: "8px 6px", fontWeight: 700, color: T.primary, minWidth: 38, cursor: scoringFinished ? "default" : "pointer" }}
+                  onClick={() => !scoringFinished && onHoleClick(h.holeNumber)}
+                >
+                  {h.holeNumber}
+                </td>
+              ))}
+              <td style={{ textAlign: "center", padding: "8px 12px", fontWeight: 700, color: T.gold, borderLeft: "2px solid rgba(201,162,39,0.45)", whiteSpace: "nowrap" }}>
+                {holes[0]?.holeNumber <= 9 ? "OUT" : "IN"}
+              </td>
+            </tr>
+            <tr style={{ background: "rgba(0,0,0,0.2)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <td style={{ padding: "6px 12px", color: T.muted, fontWeight: 600, fontSize: 11, borderRight: "1px solid rgba(255,255,255,0.08)" }}>Par</td>
+              {holes.map((h) => <td key={h.holeNumber} style={{ textAlign: "center", padding: "6px 6px", color: T.muted, fontWeight: 600, fontSize: 13 }}>{h.par}</td>)}
+              <td style={{ textAlign: "center", padding: "6px 12px", color: T.secondary, fontWeight: 700, borderLeft: "2px solid rgba(201,162,39,0.45)" }}>{halfPar}</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: "12px 12px", color: T.secondary, fontWeight: 700, fontSize: 12, borderRight: "1px solid rgba(255,255,255,0.08)", whiteSpace: "nowrap" }}>Score</td>
+              {holes.map((h) => {
+                const sc = sm.get(h.holeNumber);
+                const style = sc ? scoreBg(sc.strokes, h.par) : null;
+                const val = sc ? (mode === "over"
+                  ? (sc.strokes - h.par === 0 ? "0" : sc.strokes - h.par > 0 ? `+${sc.strokes - h.par}` : `${sc.strokes - h.par}`)
+                  : String(sc.strokes)) : null;
+                return (
+                  <td key={h.holeNumber} style={{ textAlign: "center", padding: "10px 4px", cursor: scoringFinished ? "default" : "pointer" }}
                     onClick={() => !scoringFinished && onHoleClick(h.holeNumber)}
                   >
-                    {h.holeNumber}
+                    {sc && style
+                      ? <div style={{ width: 32, height: 32, borderRadius: "50%", background: style.bg, color: style.color, fontWeight: 700, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>{val}</div>
+                      : <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
+                        <Icon icon="ph:minus" style={{ color: T.muted, fontSize: 14 }} />
+                      </div>
+                    }
                   </td>
-                ))}
-                <td style={{ textAlign: "center", padding: "7px 10px", fontWeight: 700, color: T.gold, borderLeft: "2px solid rgba(201,162,39,0.45)" }}>Tot</td>
-              </tr>
-              <tr style={{ background: "rgba(0,0,0,0.25)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                <td style={{ padding: "5px 12px", color: T.muted, fontWeight: 600, fontSize: 10, borderRight: "1px solid rgba(255,255,255,0.08)" }}>Par</td>
-                {holes.map((h) => <td key={h.holeNumber} style={{ textAlign: "center", padding: "5px 4px", color: T.muted, fontWeight: 600 }}>{h.par}</td>)}
-                <td style={{ textAlign: "center", padding: "5px 10px", color: T.secondary, fontWeight: 700, borderLeft: "2px solid rgba(201,162,39,0.45)" }}>{totalPar}</td>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ padding: "10px 12px", color: T.secondary, fontWeight: 700, fontSize: 11, borderRight: "1px solid rgba(255,255,255,0.08)", whiteSpace: "nowrap" }}>Score</td>
-                {holes.map((h) => {
-                  const sc = sm.get(h.holeNumber);
-                  const style = sc ? scoreBg(sc.strokes, h.par) : null;
-                  const val = sc ? (mode === "over"
-                    ? (sc.strokes - h.par === 0 ? "0" : sc.strokes - h.par > 0 ? `+${sc.strokes - h.par}` : `${sc.strokes - h.par}`)
-                    : String(sc.strokes)) : null;
-                  return (
-                    <td key={h.holeNumber} style={{ textAlign: "center", padding: "8px 3px", cursor: scoringFinished ? "default" : "pointer" }}
-                      onClick={() => !scoringFinished && onHoleClick(h.holeNumber)}
-                    >
-                      {sc && style
-                        ? <div style={{ width: 26, height: 26, borderRadius: "50%", background: style.bg, color: style.color, fontWeight: 700, fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>{val}</div>
-                        : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
-                          <Icon icon="ph:minus" style={{ color: T.muted, fontSize: 12 }} />
-                        </div>
-                      }
-                    </td>
-                  );
-                })}
-                <td style={{ textAlign: "center", padding: "8px 10px", borderLeft: "2px solid rgba(201,162,39,0.45)" }}>
-                  <div style={{ color: T.primary, fontWeight: 800, fontSize: 15 }}>{totalStrokes || "—"}</div>
-                  {totalStrokes > 0 && (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: scoreToPar < 0 ? T.green : scoreToPar > 0 ? T.red : T.muted }}>
-                      {scoreToPar > 0 ? `+${scoreToPar}` : scoreToPar === 0 ? "0" : scoreToPar}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+                );
+              })}
+              <td style={{ textAlign: "center", padding: "10px 12px", borderLeft: "2px solid rgba(201,162,39,0.45)" }}>
+                <div style={{ color: T.primary, fontWeight: 800, fontSize: 16 }}>{halfStrokes || "—"}</div>
+                {halfStrokes > 0 && (
+                  <div style={{ fontSize: 10, fontWeight: 700, color: halfOver < 0 ? T.green : halfOver > 0 ? T.red : T.muted }}>
+                    {halfOver > 0 ? `+${halfOver}` : halfOver === 0 ? "E" : halfOver}
+                  </div>
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -238,6 +277,7 @@ export default function ScoringPage() {
     playerId ? { tournamentId: tournamentId as Id<"tournaments">, playerId: playerId as Id<"tournament_participants"> } : "skip"
   );
   const leaderboard = useQuery(api.scores.getTournamentLeaderboard, { tournamentId: tournamentId as Id<"tournaments"> });
+  const filteredLeaderboard = (leaderboard ?? []).filter((p) => !p.name.toLowerCase().includes("test"));
   const finishScoring = useMutation(api.flights.finishScoring);
 
   const holes: HoleConfig[] = useMemo(() => {
@@ -380,7 +420,7 @@ export default function ScoringPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(leaderboard ?? []).map((p, i) => {
+                  {filteredLeaderboard.map((p, i) => {
                     const sp = p.scoreToPar;
                     const isMe = p._id === playerId;
                     return (
@@ -409,7 +449,7 @@ export default function ScoringPage() {
                       </tr>
                     );
                   })}
-                  {(leaderboard ?? []).length === 0 && (
+                  {filteredLeaderboard.length === 0 && (
                     <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: T.muted }}>No scores yet</td></tr>
                   )}
                 </tbody>
