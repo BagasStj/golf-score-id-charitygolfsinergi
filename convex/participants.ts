@@ -134,3 +134,29 @@ export const updateParticipantEmail = mutation({
     await ctx.db.patch(participantId, { email });
   },
 });
+
+export const updateParticipant = mutation({
+  args: {
+    participantId: v.id("tournament_participants"),
+    name: v.string(),
+    phone: v.string(),
+    bagTag: v.string(),
+  },
+  handler: async (ctx, { participantId, name, phone, bagTag }) => {
+    await ctx.db.patch(participantId, { name: name.trim(), phone: phone.trim(), bagTag: bagTag.trim() });
+  },
+});
+
+export const deleteParticipant = mutation({
+  args: { participantId: v.id("tournament_participants") },
+  handler: async (ctx, { participantId }) => {
+    const scores = await ctx.db
+      .query("scores")
+      .withIndex("by_player", (q) => q.eq("playerId", participantId))
+      .collect();
+    for (const score of scores) {
+      await ctx.db.delete(score._id);
+    }
+    await ctx.db.delete(participantId);
+  },
+});
